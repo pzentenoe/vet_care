@@ -1,124 +1,114 @@
 ---
-import { isAuthenticated, currentUser, logout } from '@stores/authStore';
-// O si estás usando los alias:
-// import { isAuthenticated, currentUser, logout } from '@stores/authStore';
+// No importes stores aquí si solo los usas en el cliente
 ---
 
 <header class="bg-white shadow-sm sticky top-0 z-40">
     <div class="container mx-auto px-4 py-3 flex justify-between items-center">
         <div class="flex items-center">
-            <i class="fas fa-paw text-2xl text-blue-600 mr-2"></i>
+            <i class="fas fa-paw text-2xl text-blue-600 mr-2" aria-hidden="true"></i>
             <a href="/" class="text-2xl font-bold text-blue-600">VetCare</a>
         </div>
-        
+
         <!-- Desktop Navigation -->
         <nav class="hidden md:flex space-x-8">
             <a href="/" class="text-gray-700 hover:text-blue-600 font-medium">Inicio</a>
             <a href="/servicios" class="text-gray-700 hover:text-blue-600 font-medium">Servicios</a>
             <a href="/agendamiento" class="text-gray-700 hover:text-blue-600 font-medium">Agendamiento</a>
             <a href="/contacto" class="text-gray-700 hover:text-blue-600 font-medium">Contacto</a>
-            
+
             <div id="auth-section">
-                <!-- Este contenido se actualizará con JavaScript -->
-                <button id="login-button" class="text-gray-700 hover:text-blue-600 font-medium">
-                    <i class="fas fa-user mr-1"></i> Acceder
-                </button>
+                <a href="/login" id="login-button" class="text-gray-700 hover:text-blue-600 font-medium">
+                    <i class="fas fa-user mr-1" aria-hidden="true"></i> Acceder
+                </a>
             </div>
         </nav>
-        
+
         <!-- Mobile menu button -->
-        <button id="mobile-menu-button" class="md:hidden text-gray-700">
-            <i class="fas fa-bars text-2xl"></i>
+        <button id="mobile-menu-button" class="md:hidden text-gray-700" aria-label="Abrir menú móvil">
+            <i class="fas fa-bars text-2xl" aria-hidden="true"></i>
         </button>
     </div>
 </header>
 
-<script>
-// Código del lado del cliente para manejar la autenticación en el header
-import { isAuthenticated, currentUser, logout } from '@/stores/authStore';
-// O si estás usando los alias:
-// import { isAuthenticated, currentUser, logout } from '@stores/authStore';
+<script >
+    import { isAuthenticated, currentUser, logout } from '@stores/authStore';
 
-function updateAuthSection() {
-    const authSection = document.getElementById('auth-section');
-    if (!authSection) return;
-    
-    if (isAuthenticated.get()) {
-        const user = currentUser.get();
-        authSection.innerHTML = `
+    function cleanupListeners() {
+        // Limpia listeners antiguos para evitar duplicados
+        document.removeEventListener('click', handleDocumentClick);
+    }
+
+    function handleDocumentClick(e:any) {
+        const dropdownMenu = document.getElementById('dropdown-menu');
+        const profileButton = document.getElementById('profile-button');
+        if (!dropdownMenu) return;
+        if (!dropdownMenu.contains(e.target) && e.target !== profileButton) {
+            dropdownMenu.classList.add('hidden');
+        }
+    }
+
+    function updateAuthSection() {
+        const authSection = document.getElementById('auth-section');
+        if (!authSection) return;
+        cleanupListeners();
+
+        if (isAuthenticated()) {
+            const user = currentUser();
+            const userName = (user && typeof user.name === 'string') ? user.name.split(' ')[0] : 'Usuario';
+            authSection.innerHTML = `
             <div class="relative dropdown">
-                <button id="profile-button" class="text-gray-700 hover:text-blue-600 font-medium flex items-center">
-                    <i class="fas fa-user-circle mr-1"></i>
-                    <span>${user?.name.split(' ')[0]}</span>
-                    <i class="fas fa-chevron-down ml-1 text-xs"></i>
+                <button id="profile-button" class="text-gray-700 hover:text-blue-600 font-medium flex items-center" aria-haspopup="true" aria-expanded="false">
+                    <i class="fas fa-user-circle mr-1" aria-hidden="true"></i>
+                    <span>${userName}</span>
+                    <i class="fas fa-chevron-down ml-1 text-xs" aria-hidden="true"></i>
                 </button>
-                <div id="dropdown-menu" class="absolute right-0 w-48 py-2 mt-2 bg-white rounded-md shadow-xl hidden">
-                    <a href="/perfil" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50">
+                <div id="dropdown-menu" class="absolute right-0 w-48 py-2 mt-2 bg-white rounded-md shadow-xl hidden" role="menu">
+                    <a href="/perfil" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50" role="menuitem">
                         Mi Perfil
                     </a>
-                    <a href="/fichas-clinicas" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50">
+                    <a href="/fichas-clinicas" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50" role="menuitem">
                         Fichas Clínicas
                     </a>
-                    <button id="logout-button" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                    <button id="logout-button" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50" role="menuitem">
                         Cerrar sesión
                     </button>
                 </div>
             </div>
         `;
-        
-        // Manejo del dropdown con click en lugar de hover
-        const profileButton = document.getElementById('profile-button');
-        const dropdownMenu = document.getElementById('dropdown-menu');
-        
-        // Abrir/cerrar el dropdown al hacer clic en el botón de perfil
-        profileButton?.addEventListener('click', (e) => {
-            e.stopPropagation(); // Evita que el evento llegue al document
-            dropdownMenu?.classList.toggle('hidden');
-        });
-        
-        // Cerrar el dropdown cuando se hace clic fuera de él
-        document.addEventListener('click', (e) => {
-            if (!dropdownMenu?.contains(e.target as Node) && 
-                e.target !== profileButton) {
-                dropdownMenu?.classList.add('hidden');
+
+            const profileButton = document.getElementById('profile-button');
+            const dropdownMenu = document.getElementById('dropdown-menu');
+            if (profileButton && dropdownMenu) {
+                profileButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    dropdownMenu.classList.toggle('hidden');
+                    profileButton.setAttribute('aria-expanded', dropdownMenu.classList.contains('hidden') ? 'false' : 'true');
+                });
+
+                dropdownMenu.addEventListener('click', (e:any) => {
+                    if (!(e.target).closest('#logout-button')) {
+                        e.stopPropagation();
+                    }
+                });
             }
-        });
-        
-        // Evitar que los clics dentro del dropdown lo cierren
-        dropdownMenu?.addEventListener('click', (e) => {
-            // Solo evitar propagación si no es el botón de logout
-            if (!(e.target as HTMLElement).closest('#logout-button')) {
-                e.stopPropagation();
-            }
-        });
-        
-        // Agregar el evento de logout
-        document.getElementById('logout-button')?.addEventListener('click', async () => {
-            await logout();
-            window.location.href = '/';
-        });
-    } else {
-        authSection.innerHTML = `
-            <button id="login-button" class="text-gray-700 hover:text-blue-600 font-medium">
-                <i class="fas fa-user mr-1"></i> Acceder
-            </button>
+
+            document.addEventListener('click', handleDocumentClick);
+
+            document.getElementById('logout-button')?.addEventListener('click', async () => {
+                await logout();
+                window.location.href = '/';
+            });
+        } else {
+            authSection.innerHTML = `
+            <a href="/login" id="login-button" class="text-gray-700 hover:text-blue-600 font-medium">
+                <i class="fas fa-user mr-1" aria-hidden="true"></i> Acceder
+            </a>
         `;
-        
-        // Agregar evento para mostrar el modal de login
-        document.getElementById('login-button')?.addEventListener('click', () => {
-            const loginModal = document.getElementById('login-modal');
-            loginModal?.classList.remove('hidden');
-        });
+        }
     }
-}
 
-// Observar cambios en el estado de autenticación
-isAuthenticated.subscribe(() => {
-    updateAuthSection();
-});
-
-// Inicializar al cargar la página
-document.addEventListener('DOMContentLoaded', () => {
-    updateAuthSection();
-});
+    // Ejecutar al cargar
+    document.addEventListener('DOMContentLoaded', () => {
+        updateAuthSection();
+    });
 </script>

@@ -17,11 +17,9 @@ export class AuthServiceImpl implements AuthService {
 
   // Método privado para cargar el usuario desde el almacenamiento
   private loadUserFromStorage(): void {
-    // Solo cargamos si aún no tenemos un usuario
-    if (this.user === null) {
-      this.user = safeStorage.get<User | null>(USER_STORAGE_KEY, null);
-      this.token = safeStorage.get<string | null>(TOKEN_STORAGE_KEY, null);
-    }
+    // Siempre cargamos usuario/token desde almacenamiento
+    this.user = safeStorage.get<User | null>(USER_STORAGE_KEY, null);
+    this.token = safeStorage.get<string | null>(TOKEN_STORAGE_KEY, null);
   }
 
   async login(credentials: UserCredentials): Promise<AuthResponse> {
@@ -95,8 +93,6 @@ export class AuthServiceImpl implements AuthService {
   async logout(): Promise<void> {
     this.user = null;
     this.token = null;
-
-    // Limpiar localStorage
     safeStorage.remove(USER_STORAGE_KEY);
     safeStorage.remove(TOKEN_STORAGE_KEY);
   }

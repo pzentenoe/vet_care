@@ -17,9 +17,9 @@ import { isAuthenticated, currentUser } from '@stores/authStore';
         
         <div id="mobile-auth-section">
             <!-- Este contenido se actualizará con JavaScript -->
-            <button id="mobile-login-button" class="w-full text-left text-gray-700 hover:text-blue-600">
+            <a href="/login" id="mobile-login-button" class="w-full text-left text-gray-700 hover:text-blue-600 block">
                 <i class="fas fa-user mr-2"></i> Acceder
-            </button>
+            </a>
         </div>
     </nav>
 </div>
@@ -32,8 +32,8 @@ function updateMobileAuthSection() {
     const mobileAuthSection = document.getElementById('mobile-auth-section');
     if (!mobileAuthSection) return;
     
-    if (isAuthenticated.get()) {
-        const user = currentUser.get();
+    if (isAuthenticated()) {
+        const user = currentUser();
         mobileAuthSection.innerHTML = `
             <div class="border-t pt-4 mt-4">
                 <div class="flex items-center mb-3">
@@ -59,17 +59,13 @@ function updateMobileAuthSection() {
         });
     } else {
         mobileAuthSection.innerHTML = `
-            <button id="mobile-login-button" class="w-full text-left text-gray-700 hover:text-blue-600">
+            <a href="/login" id="mobile-login-button" class="w-full text-left text-gray-700 hover:text-blue-600 block">
                 <i class="fas fa-user mr-2"></i> Acceder
-            </button>
+            </a>
         `;
         
-        // Agregar evento para mostrar el modal de login
+        // Cerrar sidebar después de hacer clic en el enlace de login
         document.getElementById('mobile-login-button')?.addEventListener('click', () => {
-            const loginModal = document.getElementById('login-modal');
-            loginModal?.classList.remove('hidden');
-            
-            // Cerrar sidebar
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('overlay');
             sidebar?.classList.remove('open');
@@ -78,13 +74,16 @@ function updateMobileAuthSection() {
     }
 }
 
-// Observar cambios en el estado de autenticación
-isAuthenticated.subscribe(() => {
-    updateMobileAuthSection();
-});
-
 // Inicializar al cargar la página
 document.addEventListener('DOMContentLoaded', () => {
     updateMobileAuthSection();
+    
+    // Cerrar sidebar después de hacer clic en el enlace de login inicial
+    document.getElementById('mobile-login-button')?.addEventListener('click', () => {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        sidebar?.classList.remove('open');
+        overlay?.classList.add('hidden');
+    });
 });
 </script>

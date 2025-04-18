@@ -19,12 +19,7 @@ const AuthGuard = (props: AuthGuardProps) => {
 
     // Manejar clic en botón de login
     const handleLoginClick = () => {
-        if (typeof window !== 'undefined' && window.openLoginModal) {
-            window.openLoginModal();
-        } else {
-            // Fallback si la función no está disponible
-            window.location.href = '/';
-        }
+        window.location.href = '/login';
     };
 
     return (

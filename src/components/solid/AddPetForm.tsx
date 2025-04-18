@@ -1,4 +1,4 @@
-import { createSignal, Show, onMount } from 'solid-js';
+import { createSignal, Show, onMount, createEffect } from 'solid-js';
 import { useAuth } from '@stores/authStore';
 import { usePets } from '@hooks/usePets';
 import { useForm, required } from '@hooks/useForm';
@@ -16,20 +16,29 @@ const AddPetForm = (props: AddPetFormProps) => {
     const { createPet } = usePets();
     const [isOpen, setIsOpen] = createSignal(props.isOpen);
     const [errorMessage, setErrorMessage] = createSignal<string | null>(null);
+    const [successMessage, setSuccessMessage] = createSignal<string | null>(null);
 
     // Escuchar el evento personalizado para abrir el formulario
     onMount(() => {
+        // Primero, definimos la función global para que esté disponible inmediatamente
+        if (typeof window !== 'undefined') {
+            window.openAddPetForm = () => {
+                setIsOpen(true);
+            };
+        }
+
+        // Luego configuramos el listener para el evento personalizado
         const formContainer = document.querySelector('[data-pet-form]');
+        if (formContainer) {
+            formContainer.addEventListener('open-pet-form', () => {
+                setIsOpen(true);
+            });
+        }
+    });
 
-        // Escuchar evento de apertura desde otros componentes
-        formContainer?.addEventListener('open-pet-form', () => {
-            setIsOpen(true);
-        });
-
-        // Establecer método global para abrir el formulario
-        window.openAddPetForm = () => {
-            setIsOpen(true);
-        };
+    // Actualizar el estado del formulario cuando cambian las props
+    createEffect(() => {
+        setIsOpen(props.isOpen);
     });
 
     // Definir formulario con validadores
@@ -67,6 +76,8 @@ const AddPetForm = (props: AddPetFormProps) => {
     const handleClose = () => {
         resetForm();
         setErrorMessage(null);
+        setSuccessMessage(null);
+        setIsOpen(false);
         props.onClose();
     };
 
@@ -80,6 +91,7 @@ const AddPetForm = (props: AddPetFormProps) => {
     // Procesar envío del formulario
     const handleAddPet = async () => {
         setErrorMessage(null);
+        setSuccessMessage(null);
 
         const currentUser = user();
         if (!currentUser) {
@@ -100,10 +112,24 @@ const AddPetForm = (props: AddPetFormProps) => {
             });
 
             if (result.success) {
-                handleClose();
-                if (props.onSuccess) {
-                    props.onSuccess();
-                }
+                setSuccessMessage('Mascota agregada correctamente');
+                
+                // Cerrar el formulario después de un breve retraso para mostrar el mensaje de éxito
+                setTimeout(() => {
+                    // Cerrar el formulario
+                    setIsOpen(false);
+                    handleClose();
+
+                    // Callback de éxito
+                    if (props.onSuccess) {
+                        props.onSuccess();
+                    }
+
+                    // Actualizar la lista de mascotas si existe la función global
+                    if (typeof window !== 'undefined' && window.loadUserPets) {
+                        window.loadUserPets();
+                    }
+                }, 1500);
             } else {
                 setErrorMessage(result.error || 'Error al agregar la mascota');
             }
@@ -117,25 +143,45 @@ const AddPetForm = (props: AddPetFormProps) => {
             <div
                 class="modal-overlay fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50"
                 onClick={handleOverlayClick}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="pet-form-title"
             >
-                <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+                <div 
+                    class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md"
+                    role="document"
+                >
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-2xl font-bold text-gray-800">Agregar mascota</h3>
-                        <button onClick={handleClose} class="text-gray-500 hover:text-gray-700">
-                            <i class="fas fa-times"></i>
+                        <h3 id="pet-form-title" class="text-2xl font-bold text-gray-800">Agregar mascota</h3>
+                        <button 
+                            onClick={handleClose} 
+                            class="text-gray-500 hover:text-gray-700"
+                            aria-label="Cerrar formulario"
+                        >
+                            <i class="fas fa-times" aria-hidden="true"></i>
                         </button>
                     </div>
 
                     <Show when={errorMessage()}>
-                        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
+                        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert" aria-live="assertive">
                             <span>{errorMessage()}</span>
                         </div>
                     </Show>
 
-                    <form onSubmit={(e) => {
-                        e.preventDefault();
-                        handleSubmit(handleAddPet);
-                    }} class="space-y-4">
+                    <Show when={successMessage()}>
+                        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="status" aria-live="polite">
+                            <span>{successMessage()}</span>
+                        </div>
+                    </Show>
+
+                    <form 
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            handleSubmit(handleAddPet);
+                        }} 
+                        class="space-y-4"
+                        aria-label="Formulario para agregar mascota"
+                    >
                         <Input
                             label="Nombre de la mascota"
                             type="text"
@@ -144,6 +190,8 @@ const AddPetForm = (props: AddPetFormProps) => {
                             onInput={(e) => handleChange('name', e.currentTarget.value)}
                             error={errors.name}
                             fullWidth
+                            required
+                            aria-required="true"
                         />
 
                         <div>
@@ -155,6 +203,8 @@ const AddPetForm = (props: AddPetFormProps) => {
                                 value={values.type}
                                 onChange={(e) => handleChange('type', e.currentTarget.value)}
                                 class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                required
+                                aria-required="true"
                             >
                                 <option value="Perro">Perro</option>
                                 <option value="Gato">Gato</option>
@@ -164,7 +214,7 @@ const AddPetForm = (props: AddPetFormProps) => {
                                 <option value="Otro">Otro</option>
                             </select>
                             <Show when={errors.type}>
-                                <p class="mt-1 text-sm text-red-600">{errors.type}</p>
+                                <p class="mt-1 text-sm text-red-600" role="alert">{errors.type}</p>
                             </Show>
                         </div>
 
@@ -176,6 +226,8 @@ const AddPetForm = (props: AddPetFormProps) => {
                             onInput={(e) => handleChange('breed', e.currentTarget.value)}
                             error={errors.breed}
                             fullWidth
+                            required
+                            aria-required="true"
                         />
 
                         <Input
@@ -188,6 +240,7 @@ const AddPetForm = (props: AddPetFormProps) => {
                             onInput={(e) => handleChange('age', e.currentTarget.valueAsNumber || 0)}
                             error={errors.age}
                             fullWidth
+                            aria-required="true"
                         />
 
                         <Input
@@ -200,6 +253,7 @@ const AddPetForm = (props: AddPetFormProps) => {
                             onInput={(e) => handleChange('weight', e.currentTarget.valueAsNumber || 0)}
                             error={errors.weight}
                             fullWidth
+                            aria-required="true"
                         />
 
                         <div>
@@ -211,29 +265,49 @@ const AddPetForm = (props: AddPetFormProps) => {
                                 value={values.gender}
                                 onChange={(e) => handleChange('gender', e.currentTarget.value)}
                                 class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                required
+                                aria-required="true"
                             >
                                 <option value="Macho">Macho</option>
                                 <option value="Hembra">Hembra</option>
                             </select>
                             <Show when={errors.gender}>
-                                <p class="mt-1 text-sm text-red-600">{errors.gender}</p>
+                                <p class="mt-1 text-sm text-red-600" role="alert">{errors.gender}</p>
                             </Show>
                         </div>
 
-                        <Button
-                            type="submit"
-                            variant="success"
-                            fullWidth
-                            isLoading={isSubmitting()}
-                            leftIcon="fa-plus"
-                        >
-                            Agregar mascota
-                        </Button>
+                        <div class="flex justify-end space-x-3 mt-6">
+                            <Button
+                                variant="secondary"
+                                onClick={handleClose}
+                                type="button"
+                                aria-label="Cancelar agregar mascota"
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                variant="primary"
+                                type="submit"
+                                isLoading={isSubmitting()}
+                                disabled={!isValid() || isSubmitting()}
+                                aria-label="Guardar nueva mascota"
+                            >
+                                Guardar mascota
+                            </Button>
+                        </div>
                     </form>
                 </div>
             </div>
         </Show>
     );
 };
+
+// Declaración para TypeScript
+declare global {
+    interface Window {
+        openAddPetForm: () => void;
+        loadUserPets?: () => Promise<void>;
+    }
+}
 
 export default AddPetForm;

@@ -1,4 +1,4 @@
-import { createSignal, Show, onMount } from 'solid-js';
+import { createSignal, Show, onMount, createEffect } from 'solid-js';
 import { useAuth } from '@stores/authStore';
 import { useForm, required, email } from '@hooks/useForm';
 import { UserService } from '@services/api/UserServiceImpl';
@@ -12,10 +12,11 @@ interface EditProfileFormProps {
 }
 
 const EditProfileForm = (props: EditProfileFormProps) => {
-    const { user } = useAuth();
+    const { user, updateUserData } = useAuth();
     const userService = new UserService();
     const [isOpen, setIsOpen] = createSignal(props.isOpen);
     const [errorMessage, setErrorMessage] = createSignal<string | null>(null);
+    const [successMessage, setSuccessMessage] = createSignal<string | null>(null);
 
     // Definir formulario con validadores
     const { values, errors, isValid, isSubmitting, handleChange, handleSubmit, resetForm, validateForm } = useForm({
@@ -41,10 +42,21 @@ const EditProfileForm = (props: EditProfileFormProps) => {
         }
     });
 
+    // Actualizar el formulario cuando cambie el usuario
+    createEffect(() => {
+        const currentUser = user();
+        if (currentUser) {
+            handleChange('name', currentUser.name || '');
+            handleChange('email', currentUser.email || '');
+            handleChange('phone', currentUser.phone || '');
+        }
+    });
+
     // Cerrar modal y resetear formulario
     const handleClose = () => {
         resetForm();
         setErrorMessage(null);
+        setSuccessMessage(null);
         setIsOpen(false);
         props.onClose();
     };
@@ -60,9 +72,9 @@ const EditProfileForm = (props: EditProfileFormProps) => {
     const populateForm = () => {
         const currentUser = user();
         if (currentUser) {
-            handleChange('name', currentUser.name);
-            handleChange('email', currentUser.email);
-            handleChange('phone', currentUser.phone);
+            handleChange('name', currentUser.name || '');
+            handleChange('email', currentUser.email || '');
+            handleChange('phone', currentUser.phone || '');
         }
     };
 
@@ -78,16 +90,19 @@ const EditProfileForm = (props: EditProfileFormProps) => {
         });
 
         // Establecer método global para abrir el formulario
-        window.openEditProfileForm = () => {
-            setIsOpen(true);
-            // Actualizar formulario con datos actuales
-            populateForm();
-        };
+        if (typeof window !== 'undefined') {
+            window.openEditProfileForm = () => {
+                setIsOpen(true);
+                // Actualizar formulario con datos actuales
+                populateForm();
+            };
+        }
     });
 
     // Procesar envío del formulario
     const handleUpdateProfile = async () => {
         setErrorMessage(null);
+        setSuccessMessage(null);
 
         // Validar que las contraseñas coincidan si se está cambiando
         if (values.password && values.password !== values.confirmPassword) {
@@ -116,10 +131,19 @@ const EditProfileForm = (props: EditProfileFormProps) => {
 
             // Actualizar el usuario
             const updatedUser = await userService.updateUser(currentUser.id, updateData);
-
-            handleClose();
-            if (props.onSuccess) {
-                props.onSuccess();
+            
+            // Actualizar el estado global del usuario
+            if (updatedUser) {
+                updateUserData(updatedUser);
+                setSuccessMessage('Perfil actualizado correctamente');
+                
+                // Cerrar después de un breve retraso para mostrar el mensaje de éxito
+                setTimeout(() => {
+                    handleClose();
+                    if (props.onSuccess) {
+                        props.onSuccess();
+                    }
+                }, 1500);
             }
         } catch (error) {
             setErrorMessage('Error al actualizar el perfil');
@@ -131,25 +155,45 @@ const EditProfileForm = (props: EditProfileFormProps) => {
             <div
                 class="modal-overlay fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50"
                 onClick={handleOverlayClick}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="profile-form-title"
             >
-                <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+                <div 
+                    class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md"
+                    role="document"
+                >
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-2xl font-bold text-gray-800">Editar perfil</h3>
-                        <button onClick={handleClose} class="text-gray-500 hover:text-gray-700">
-                            <i class="fas fa-times"></i>
+                        <h3 id="profile-form-title" class="text-2xl font-bold text-gray-800">Editar perfil</h3>
+                        <button 
+                            onClick={handleClose} 
+                            class="text-gray-500 hover:text-gray-700"
+                            aria-label="Cerrar formulario"
+                        >
+                            <i class="fas fa-times" aria-hidden="true"></i>
                         </button>
                     </div>
 
                     <Show when={errorMessage()}>
-                        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
+                        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert" aria-live="assertive">
                             <span>{errorMessage()}</span>
                         </div>
                     </Show>
 
-                    <form onSubmit={(e) => {
-                        e.preventDefault();
-                        handleSubmit(handleUpdateProfile);
-                    }} class="space-y-4">
+                    <Show when={successMessage()}>
+                        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="status" aria-live="polite">
+                            <span>{successMessage()}</span>
+                        </div>
+                    </Show>
+
+                    <form 
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            handleSubmit(handleUpdateProfile);
+                        }} 
+                        class="space-y-4"
+                        aria-label="Formulario de edición de perfil"
+                    >
                         <Input
                             label="Nombre completo"
                             type="text"
@@ -158,6 +202,7 @@ const EditProfileForm = (props: EditProfileFormProps) => {
                             onInput={(e) => handleChange('name', e.currentTarget.value)}
                             error={errors.name}
                             fullWidth
+                            required
                         />
 
                         <Input
@@ -168,6 +213,7 @@ const EditProfileForm = (props: EditProfileFormProps) => {
                             onInput={(e) => handleChange('email', e.currentTarget.value)}
                             error={errors.email}
                             fullWidth
+                            required
                         />
 
                         <Input
@@ -178,6 +224,7 @@ const EditProfileForm = (props: EditProfileFormProps) => {
                             onInput={(e) => handleChange('phone', e.currentTarget.value)}
                             error={errors.phone}
                             fullWidth
+                            required
                         />
 
                         <Input
@@ -188,6 +235,7 @@ const EditProfileForm = (props: EditProfileFormProps) => {
                             onInput={(e) => handleChange('password', e.currentTarget.value)}
                             error={errors.password}
                             fullWidth
+                            autocomplete="new-password"
                         />
 
                         <Input
@@ -198,17 +246,28 @@ const EditProfileForm = (props: EditProfileFormProps) => {
                             onInput={(e) => handleChange('confirmPassword', e.currentTarget.value)}
                             error={errors.confirmPassword}
                             fullWidth
+                            autocomplete="new-password"
                         />
 
-                        <Button
-                            type="submit"
-                            variant="primary"
-                            fullWidth
-                            isLoading={isSubmitting()}
-                            leftIcon="fa-save"
-                        >
-                            Guardar cambios
-                        </Button>
+                        <div class="flex justify-end space-x-3 mt-6">
+                            <Button
+                                variant="secondary"
+                                onClick={handleClose}
+                                type="button"
+                                aria-label="Cancelar edición de perfil"
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                variant="primary"
+                                type="submit"
+                                isLoading={isSubmitting()}
+                                disabled={!isValid() || isSubmitting()}
+                                aria-label="Guardar cambios del perfil"
+                            >
+                                Guardar cambios
+                            </Button>
+                        </div>
                     </form>
                 </div>
             </div>

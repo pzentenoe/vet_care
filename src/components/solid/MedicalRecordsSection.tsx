@@ -1,4 +1,4 @@
-import { createSignal, Show } from 'solid-js';
+import { createSignal, Show, createMemo } from 'solid-js';
 import { useAuth } from '@stores/authStore';
 import AdminRecordsTable from './AdminRecordsTable';
 import VetPatientsGrid from './VetPatientsGrid';
@@ -7,6 +7,11 @@ import Button from './Button';
 
 const MedicalRecordsSection = () => {
     const { user, logout } = useAuth();
+    
+    // Memorizar el rol del usuario para evitar inconsistencias durante la hidratación
+    const userRole = createMemo(() => {
+        return user()?.role || 'guest';
+    });
 
     // Manejar clic en botón de cerrar sesión
     const handleLogoutClick = async () => {
@@ -33,16 +38,22 @@ const MedicalRecordsSection = () => {
                 <div class="bg-gray-50 rounded-xl shadow-md overflow-hidden">
                     <div class="p-6">
                         {/* Vista según el rol */}
-                        <Show when={user()?.role === 'admin'}>
+                        <Show when={userRole() === 'admin'}>
                             <AdminRecordsTable />
                         </Show>
 
-                        <Show when={user()?.role === 'vet'}>
+                        <Show when={userRole() === 'vet'}>
                             <VetPatientsGrid />
                         </Show>
 
-                        <Show when={user()?.role === 'user'}>
+                        <Show when={userRole() === 'user'}>
                             <UserPetRecords />
+                        </Show>
+                        
+                        <Show when={userRole() === 'guest'}>
+                            <div class="bg-yellow-50 p-4 rounded-lg text-center">
+                                <p class="text-yellow-700">Debes iniciar sesión para ver esta sección</p>
+                            </div>
                         </Show>
                     </div>
                 </div>

@@ -1,26 +1,29 @@
 import { createSignal, createEffect, createRoot } from 'solid-js';
 import type { User } from '@services/interfaces/AuthService';
 import { AuthServiceImpl } from '@services/api/AuthServiceImpl';
+import { safeStorage } from '@utils/storage';
 
 // Creamos un scope aislado para los signals
 const createAuthStore = () => {
   const authService = new AuthServiceImpl();
 
-  // Crear signals con valores iniciales que no dependen de localStorage
+  // Crear signals
   const [isAuthenticated, setIsAuthenticated] = createSignal<boolean>(false);
   const [user, setUser] = createSignal<User | null>(null);
+  const [isInitialized, setIsInitialized] = createSignal<boolean>(false);
 
   // Esta función inicializa el estado desde el authService
-  // Solo se ejecutará en el cliente cuando se importe el store
   const initializeStore = () => {
-    // Verificamos la autenticación actual
+    // Siempre inicializa el estado
     const isAuth = authService.isAuthenticated();
     setIsAuthenticated(isAuth);
-
-    // Si está autenticado, obtenemos el usuario
     if (isAuth) {
       setUser(authService.getCurrentUser());
+    } else {
+      setUser(null);
     }
+    setIsInitialized(true);
+    console.log("Auth store initialized, authenticated:", isAuth);
   };
 
   // Exponemos las acciones
@@ -67,7 +70,7 @@ export const logout = authStore.logout;
 
 // Este hook se utiliza en componentes SolidJS
 export const useAuth = () => {
-  // Inicializamos el store al usar el hook por primera vez en el cliente
+  // Asegurarse de que el store esté inicializado
   if (typeof window !== 'undefined') {
     authStore.initializeStore();
   }
@@ -80,7 +83,7 @@ export const useAuth = () => {
   };
 };
 
-// Inicializamos solo en el cliente
+// Inicializamos el store inmediatamente en cliente
 if (typeof window !== 'undefined') {
   authStore.initializeStore();
 }

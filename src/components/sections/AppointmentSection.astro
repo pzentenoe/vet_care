@@ -102,8 +102,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const messageDiv = document.getElementById('appointment-form-message');
     
     // Prellenar el formulario si el usuario está autenticado
-    if (isAuthenticated.get()) {
-        const user = currentUser.get();
+    if (isAuthenticated()) {
+        const user = currentUser();
         if (user) {
             const nameInput = document.getElementById('name') as HTMLInputElement;
             const emailInput = document.getElementById('email-appointment') as HTMLInputElement;

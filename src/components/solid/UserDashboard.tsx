@@ -44,7 +44,7 @@ const UserDashboard = () => {
             <Show when={!isAuthenticated()}>
                 <Button
                     variant="primary"
-                    onClick={() => window.openLoginModal?.()}
+                    onClick={() => window.location.href = '/login'}
                     leftIcon="fa-sign-in-alt"
                 >
                     Iniciar sesión
