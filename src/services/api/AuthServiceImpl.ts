@@ -1,29 +1,35 @@
 import type { AuthService, UserCredentials, AuthResponse, User } from '../interfaces/AuthService';
+import { safeStorage } from '@utils/storage';
+
+const USER_STORAGE_KEY = 'user';
+const TOKEN_STORAGE_KEY = 'token';
 
 // Simulación de la API para autenticación
 export class AuthServiceImpl implements AuthService {
-  private user: User | null = null;
-  private token: string | null = null;
+  private user: User | null;
+  private token: string | null;
 
   constructor() {
-    // Intenta recuperar la sesión del almacenamiento local
-    const storedUser = localStorage.getItem('user');
-    const storedToken = localStorage.getItem('token');
-    
-    if (storedUser && storedToken) {
-      this.user = JSON.parse(storedUser);
-      this.token = storedToken;
+    // Inicialización perezosa - no cargamos nada en el constructor
+    this.user = null;
+    this.token = null;
+  }
+
+  // Método privado para cargar el usuario desde el almacenamiento
+  private loadUserFromStorage(): void {
+    // Solo cargamos si aún no tenemos un usuario
+    if (this.user === null) {
+      this.user = safeStorage.get<User | null>(USER_STORAGE_KEY, null);
+      this.token = safeStorage.get<string | null>(TOKEN_STORAGE_KEY, null);
     }
   }
 
   async login(credentials: UserCredentials): Promise<AuthResponse> {
     try {
       // Simulación de llamada a API
-      // En la implementación real, esto sería un fetch a tu API en Golang
-      
       // Para desarrollo, simularemos diferentes tipos de usuarios según el email
       let mockUser: User | null = null;
-      
+
       if (credentials.email.includes('admin@')) {
         mockUser = {
           id: '1',
@@ -68,10 +74,10 @@ export class AuthServiceImpl implements AuthService {
       // Guardar la sesión
       this.user = mockUser;
       this.token = 'mock-jwt-token-' + mockUser.id;
-      
-      // Guardar en localStorage para persistencia
-      localStorage.setItem('user', JSON.stringify(this.user));
-      localStorage.setItem('token', this.token);
+
+      // Guardar en localStorage
+      safeStorage.set(USER_STORAGE_KEY, this.user);
+      safeStorage.set(TOKEN_STORAGE_KEY, this.token);
 
       return {
         success: true,
@@ -89,15 +95,19 @@ export class AuthServiceImpl implements AuthService {
   async logout(): Promise<void> {
     this.user = null;
     this.token = null;
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
+
+    // Limpiar localStorage
+    safeStorage.remove(USER_STORAGE_KEY);
+    safeStorage.remove(TOKEN_STORAGE_KEY);
   }
 
   isAuthenticated(): boolean {
+    this.loadUserFromStorage();
     return !!this.user && !!this.token;
   }
 
   getCurrentUser(): User | null {
+    this.loadUserFromStorage();
     return this.user;
   }
 }

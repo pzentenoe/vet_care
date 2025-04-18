@@ -1,11 +1,11 @@
 ---
 import MainLayout from '@layouts/MainLayout.astro';
-import MedicalRecordsSection from '@components/sections/MedicalRecordsSection.astro';
 import AuthGuard from '@components/common/AuthGuard.astro';
+import MedicalRecordsSectionSolid from '@components/solid/MedicalRecordsSection';
 ---
 
 <MainLayout title="Fichas Clínicas">
     <AuthGuard>
-        <MedicalRecordsSection />
+        <MedicalRecordsSectionSolid client:load />
     </AuthGuard>
 </MainLayout>

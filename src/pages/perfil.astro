@@ -1,11 +1,17 @@
 ---
 import MainLayout from '@layouts/MainLayout.astro';
-import ProfileSection from '@components/sections/ProfileSection.astro';
 import AuthGuard from '@components/common/AuthGuard.astro';
+import ProfileSectionSolid from '@components/solid/ProfileSection';
+import EditProfileForm from '@components/forms/EditProfileForm.astro';
+import AddPetForm from '@components/forms/AddPetForm.astro';
 ---
 
 <MainLayout title="Mi Perfil">
     <AuthGuard>
-        <ProfileSection />
+        <ProfileSectionSolid client:load />
+
+        <!-- Incluimos los formularios modulares para que puedan ser accedidos globalmente -->
+        <EditProfileForm />
+        <AddPetForm />
     </AuthGuard>
 </MainLayout>

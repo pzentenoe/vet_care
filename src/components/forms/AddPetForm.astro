@@ -1,171 +1,33 @@
 ---
-import { currentUser } from '@stores/authStore';
+import AddPetFormSolid from '@components/solid/AddPetForm';
 ---
 
-<div id="add-pet-form" class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50 hidden">
-    <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-2xl font-bold text-gray-800">Agregar mascota</h3>
-            <button id="close-pet-form" class="text-gray-500 hover:text-gray-700">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        
-        <div id="pet-form-error" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
-            <span id="pet-error-text">Error al agregar la mascota</span>
-        </div>
-        
-        <form id="new-pet-form" class="space-y-4">
-            <div>
-                <label for="pet-name" class="block text-sm font-medium text-gray-700">Nombre de la mascota</label>
-                <input type="text" id="pet-name" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-            </div>
-            <div>
-                <label for="pet-type" class="block text-sm font-medium text-gray-700">Tipo de mascota</label>
-                <select id="pet-type" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    <option>Perro</option>
-                    <option>Gato</option>
-                    <option>Ave</option>
-                    <option>Roedor</option>
-                    <option>Reptil</option>
-                    <option>Otro</option>
-                </select>
-            </div>
-            <div>
-                <label for="pet-breed" class="block text-sm font-medium text-gray-700">Raza</label>
-                <input type="text" id="pet-breed" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-            </div>
-            <div>
-                <label for="pet-age" class="block text-sm font-medium text-gray-700">Edad (años)</label>
-                <input type="number" id="pet-age" min="0" max="30" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-            </div>
-            <div>
-                <label for="pet-weight" class="block text-sm font-medium text-gray-700">Peso (kg)</label>
-                <input type="number" id="pet-weight" min="0" step="0.1" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-            </div>
-            <div>
-                <label for="pet-gender" class="block text-sm font-medium text-gray-700">Género</label>
-                <select id="pet-gender" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    <option>Macho</option>
-                    <option>Hembra</option>
-                </select>
-            </div>
-            <div>
-                <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                    Agregar mascota
-                </button>
-            </div>
-        </form>
-    </div>
+<div id="add-pet-form-container" data-pet-form>
+    <AddPetFormSolid client:visible isOpen={false} onClose={() => {}} />
 </div>
 
 <script>
-import { currentUser } from '@stores/authStore';
-import { PetServiceImpl } from '../../services/api/PetServiceImpl';
+    document.addEventListener('DOMContentLoaded', () => {
+        const formContainer = document.getElementById('add-pet-form-container');
 
-const petService = new PetServiceImpl();
+        // Definir función global para abrir el modal
+        window.openAddPetForm = () => {
+            // Disparar evento custom que el componente Solid escuchará
+            const event = new CustomEvent('open-pet-form');
+            formContainer?.dispatchEvent(event);
+        };
 
-document.addEventListener('DOMContentLoaded', () => {
-    const petForm = document.getElementById('new-pet-form') as HTMLFormElement;
-    const closeBtn = document.getElementById('close-pet-form');
-    const errorMessage = document.getElementById('pet-form-error');
-    const errorText = document.getElementById('pet-error-text');
-    
-    // Cerrar el formulario
-    function closePetForm() {
-        const form = document.getElementById('add-pet-form');
-        form?.classList.add('hidden');
-        
-        // Limpiar mensajes de error
-        errorMessage?.classList.add('hidden');
-        if (errorText) errorText.textContent = '';
-        
-        // Limpiar el formulario
-        petForm?.reset();
-    }
-    
-    // Configurar cierre con el botón
-    closeBtn?.addEventListener('click', closePetForm);
-    
-    // Cerrar si se hace clic fuera del formulario
-    document.addEventListener('click', (e) => {
-        const addPetForm = document.getElementById('add-pet-form');
-        if (e.target === addPetForm) {
-            closePetForm();
+        // Exponer función al objeto window
+        if (typeof window !== 'undefined') {
+            window.openAddPetForm = window.openAddPetForm || (() => {});
         }
     });
-    
-    // Manejar envío del formulario
-    petForm?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const nameInput = document.getElementById('pet-name') as HTMLInputElement;
-        const typeInput = document.getElementById('pet-type') as HTMLSelectElement;
-        const breedInput = document.getElementById('pet-breed') as HTMLInputElement;
-        const ageInput = document.getElementById('pet-age') as HTMLInputElement;
-        const weightInput = document.getElementById('pet-weight') as HTMLInputElement;
-        const genderInput = document.getElementById('pet-gender') as HTMLSelectElement;
-        
-        const name = nameInput?.value || '';
-        const type = typeInput?.value || '';
-        const breed = breedInput?.value || '';
-        const age = parseInt(ageInput?.value || '0');
-        const weight = parseFloat(weightInput?.value || '0');
-        const gender = genderInput?.value || '';
-        
-        // Validación básica
-        if (!name || !type || !breed || isNaN(age) || isNaN(weight) || !gender) {
-            errorMessage?.classList.remove('hidden');
-            if (errorText) errorText.textContent = 'Por favor completa todos los campos';
-            return;
-        }
-        
-        // Obtener el usuario actual
-        const user = currentUser.get();
-        if (!user) {
-            errorMessage?.classList.remove('hidden');
-            if (errorText) errorText.textContent = 'Error: No se pudo obtener la información del usuario';
-            return;
-        }
-        
-        try {
-            // Crear la mascota
-            await petService.createPet({
-                name,
-                type,
-                breed,
-                age,
-                weight,
-                gender,
-                ownerId: user.id,
-                status: 'active'
-            });
-            
-            // Cerrar el formulario
-            closePetForm();
-            
-            // Recargar la lista de mascotas
-            // Esta función debe estar definida en el script de ProfileSection.astro
-            if (typeof window.loadUserPets === 'function') {
-                window.loadUserPets();
-            } else {
-                // Si no está disponible, recargar la página
-                window.location.reload();
-            }
-            
-            // Mostrar mensaje de éxito
-            alert('Mascota agregada correctamente');
-        } catch (error) {
-            errorMessage?.classList.remove('hidden');
-            if (errorText) errorText.textContent = 'Error al agregar la mascota';
-        }
-    });
-});
 
-// Declarar la función de recargar mascotas como global para que pueda ser llamada desde ProfileSection
-declare global {
-    interface Window {
-        loadUserPets: () => Promise<void>;
+    // Declaración para TypeScript
+    declare global {
+        interface Window {
+            openAddPetForm: () => void;
+            loadUserPets?: () => Promise<void>;
+        }
     }
-}
 </script>

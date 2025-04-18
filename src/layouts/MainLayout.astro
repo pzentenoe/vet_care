@@ -3,7 +3,7 @@ import '@styles/global.css';
 import Header from './Header.astro';
 import Footer from './Footer.astro';
 import MobileSidebar from './MobileSidebar.astro';
-import LoginModal from '@components/common/LoginModal.astro';
+import LoginModal from '../components/common/LoginModal.astro';
 
 const { title } = Astro.props;
 ---
@@ -16,45 +16,45 @@ const { title } = Astro.props;
     <title>{title} - VetCare</title>
 </head>
 <body class="font-sans bg-gray-50">
-    <Header />
-    <MobileSidebar />
-    <div id="overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-30"></div>
-    <LoginModal />
-    
-    <main>
-        <slot />
-    </main>
-    
-    <Footer />
-    
-    <script>
-      // Código del cliente para la interactividad
-      document.addEventListener('DOMContentLoaded', () => {
+<Header />
+<MobileSidebar />
+<div id="overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-30"></div>
+<LoginModal />
+
+<main>
+    <slot />
+</main>
+
+<Footer />
+
+<script>
+    // Código del cliente para la interactividad
+    document.addEventListener('DOMContentLoaded', () => {
         // Inicializar elementos interactivos
         initMobileMenu();
-      });
-      
-      function initMobileMenu() {
+    });
+
+    function initMobileMenu() {
         const mobileMenuButton = document.getElementById('mobile-menu-button');
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('overlay');
         const closeSidebar = document.getElementById('close-sidebar');
-        
+
         mobileMenuButton?.addEventListener('click', () => {
             sidebar?.classList.add('open');
             overlay?.classList.remove('hidden');
         });
-        
+
         closeSidebar?.addEventListener('click', () => {
             sidebar?.classList.remove('open');
             overlay?.classList.add('hidden');
         });
-        
+
         overlay?.addEventListener('click', () => {
             sidebar?.classList.remove('open');
             overlay?.classList.add('hidden');
         });
-      }
-    </script>
+    }
+</script>
 </body>
 </html>
