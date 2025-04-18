@@ -1,0 +1,90 @@
+---
+import { isAuthenticated, currentUser } from '@stores/authStore';
+---
+
+<div id="sidebar" class="sidebar md:hidden bg-white w-64 shadow-lg">
+    <div class="p-4 border-b flex justify-between items-center">
+        <span class="font-bold text-lg">Menú</span>
+        <button id="close-sidebar" class="text-gray-500">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <nav class="p-4 space-y-4">
+        <a href="/" class="block text-gray-700 hover:text-blue-600">Inicio</a>
+        <a href="/servicios" class="block text-gray-700 hover:text-blue-600">Servicios</a>
+        <a href="/agendamiento" class="block text-gray-700 hover:text-blue-600">Agendamiento</a>
+        <a href="/contacto" class="block text-gray-700 hover:text-blue-600">Contacto</a>
+        
+        <div id="mobile-auth-section">
+            <!-- Este contenido se actualizará con JavaScript -->
+            <button id="mobile-login-button" class="w-full text-left text-gray-700 hover:text-blue-600">
+                <i class="fas fa-user mr-2"></i> Acceder
+            </button>
+        </div>
+    </nav>
+</div>
+
+<script>
+// Código del lado del cliente para manejar la autenticación en el sidebar
+import { isAuthenticated, currentUser, logout } from '@stores/authStore';
+
+function updateMobileAuthSection() {
+    const mobileAuthSection = document.getElementById('mobile-auth-section');
+    if (!mobileAuthSection) return;
+    
+    if (isAuthenticated.get()) {
+        const user = currentUser.get();
+        mobileAuthSection.innerHTML = `
+            <div class="border-t pt-4 mt-4">
+                <div class="flex items-center mb-3">
+                    <i class="fas fa-user-circle text-blue-600 mr-2 text-xl"></i>
+                    <span class="font-medium">${user?.name}</span>
+                </div>
+                <a href="/perfil" class="block pl-2 py-2 text-gray-700 hover:text-blue-600">
+                    <i class="fas fa-id-card mr-2"></i> Mi Perfil
+                </a>
+                <a href="/fichas-clinicas" class="block pl-2 py-2 text-gray-700 hover:text-blue-600">
+                    <i class="fas fa-clipboard-list mr-2"></i> Fichas Clínicas
+                </a>
+                <button id="mobile-logout-button" class="w-full text-left pl-2 py-2 text-red-600 hover:text-red-800">
+                    <i class="fas fa-sign-out-alt mr-2"></i> Cerrar sesión
+                </button>
+            </div>
+        `;
+        
+        // Agregar el evento de logout
+        document.getElementById('mobile-logout-button')?.addEventListener('click', async () => {
+            await logout();
+            window.location.href = '/';
+        });
+    } else {
+        mobileAuthSection.innerHTML = `
+            <button id="mobile-login-button" class="w-full text-left text-gray-700 hover:text-blue-600">
+                <i class="fas fa-user mr-2"></i> Acceder
+            </button>
+        `;
+        
+        // Agregar evento para mostrar el modal de login
+        document.getElementById('mobile-login-button')?.addEventListener('click', () => {
+            const loginModal = document.getElementById('login-modal');
+            loginModal?.classList.remove('hidden');
+            
+            // Cerrar sidebar
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            sidebar?.classList.remove('open');
+            overlay?.classList.add('hidden');
+        });
+    }
+}
+
+// Observar cambios en el estado de autenticación
+isAuthenticated.subscribe(() => {
+    updateMobileAuthSection();
+});
+
+// Inicializar al cargar la página
+document.addEventListener('DOMContentLoaded', () => {
+    updateMobileAuthSection();
+});
+</script>

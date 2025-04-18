@@ -1,0 +1,273 @@
+---
+import { currentUser } from '../../stores/authStore';
+import EditProfileForm from '../forms/EditProfileForm.astro';
+import AddPetForm from '../forms/AddPetForm.astro';
+---
+
+<section class="py-16 bg-gray-50">
+    <div class="container mx-auto px-4">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-3xl font-bold text-gray-800">Mi Perfil</h2>
+            <button id="logout-btn" class="text-red-600 hover:text-red-800 font-medium">
+                <i class="fas fa-sign-out-alt mr-1"></i> Cerrar sesión
+            </button>
+        </div>
+        
+        <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+            <div class="md:flex">
+                <div class="md:w-1/3 bg-blue-50 p-8 flex flex-col items-center">
+                    <div class="w-32 h-32 rounded-full bg-blue-100 flex items-center justify-center mb-4 overflow-hidden">
+                        <i class="fas fa-user-circle text-6xl text-blue-400"></i>
+                    </div>
+                    <h3 id="profile-name" class="text-xl font-bold text-center text-gray-800">Cargando...</h3>
+                    <p id="profile-role" class="text-blue-600 font-medium text-center">...</p>
+                    
+                    <div class="mt-6 w-full">
+                        <h4 class="font-bold text-gray-700 mb-2">Información de contacto</h4>
+                        <p id="profile-email" class="text-gray-600">...</p>
+                        <p id="profile-phone" class="text-gray-600">...</p>
+                    </div>
+                    
+                    <button id="edit-profile-btn" class="mt-6 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-300">
+                        Editar perfil
+                    </button>
+                </div>
+                
+                <div class="md:w-2/3 p-8">
+                    <h3 class="text-xl font-bold mb-6 text-gray-800">Mis mascotas</h3>
+                    
+                    <div id="user-pets-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                        <!-- Las mascotas se cargarán dinámicamente aquí -->
+                        <div class="animate-pulse bg-gray-200 rounded-lg h-32"></div>
+                    </div>
+                    
+                    <button id="add-pet-btn" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition duration-300">
+                        <i class="fas fa-plus mr-1"></i> Agregar mascota
+                    </button>
+                    
+                    <div class="mt-8">
+                        <h3 class="text-xl font-bold mb-4 text-gray-800">Próximas citas</h3>
+                        <div id="user-appointments-container" class="space-y-3">
+                            <!-- Las citas se cargarán dinámicamente aquí -->
+                            <div class="animate-pulse bg-gray-200 rounded-lg h-24"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modals -->
+    <EditProfileForm />
+    <AddPetForm />
+</section>
+
+<script>
+import { currentUser, logout } from '../../stores/authStore';
+import { PetServiceImpl } from '../../services/api/PetServiceImpl';
+import { AppointmentServiceImpl } from '../../services/api/AppointmentServiceImpl';
+
+const petService = new PetServiceImpl();
+const appointmentService = new AppointmentServiceImpl();
+
+// Actualizar la información del perfil
+function updateProfileInfo() {
+    const user = currentUser.get();
+    if (!user) return;
+    
+    const profileName = document.getElementById('profile-name');
+    const profileRole = document.getElementById('profile-role');
+    const profileEmail = document.getElementById('profile-email');
+    const profilePhone = document.getElementById('profile-phone');
+    
+    if (profileName) profileName.textContent = user.name;
+    if (profileEmail) profileEmail.textContent = user.email;
+    if (profilePhone) profilePhone.textContent = user.phone;
+    
+    // Mostrar el rol en español
+    let roleText = '';
+    switch (user.role) {
+        case 'admin':
+            roleText = 'Administrador';
+            break;
+        case 'vet':
+            roleText = 'Veterinario';
+            break;
+        default:
+            roleText = 'Dueño de mascota';
+    }
+    if (profileRole) profileRole.textContent = roleText;
+}
+
+// Cargar las mascotas del usuario
+async function loadUserPets() {
+    const user = currentUser.get();
+    if (!user) return;
+    
+    const petsContainer = document.getElementById('user-pets-container');
+    if (!petsContainer) return;
+    
+    // Mostrar un loader mientras cargamos
+    petsContainer.innerHTML = '<div class="animate-pulse bg-gray-200 rounded-lg h-32"></div>';
+    
+    try {
+        const pets = await petService.getPetsByOwnerId(user.id);
+        
+        if (pets.length === 0) {
+            petsContainer.innerHTML = `
+                <div class="col-span-full bg-gray-100 p-4 rounded-lg text-center">
+                    <p class="text-gray-600">No tienes mascotas registradas aún.</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // Crear las tarjetas de mascotas
+        petsContainer.innerHTML = '';
+        pets.forEach(pet => {
+            const iconClass = pet.type === 'Gato' ? 'fa-cat' : 'fa-dog';
+            const colorClass = pet.type === 'Gato' ? 'orange' : 'blue';
+            
+            const petCard = document.createElement('div');
+            petCard.className = `bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 pet-card transition duration-300`;
+            petCard.innerHTML = `
+                <div class="p-4 bg-${colorClass}-50">
+                    <div class="flex items-center">
+                        <i class="fas ${iconClass} text-3xl text-${colorClass}-600 mr-3"></i>
+                        <div>
+                            <h4 class="font-bold text-gray-800">${pet.name}</h4>
+                            <p class="text-sm text-gray-600">${pet.breed}, ${pet.age} años</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <div class="flex justify-between items-center">
+                        <span class="bg-${pet.status === 'active' ? 'blue' : 'gray'}-100 text-${pet.status === 'active' ? 'blue' : 'gray'}-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                            ${pet.status === 'active' ? 'Activo' : 'Inactivo'}
+                        </span>
+                        <a href="/fichas-clinicas/${pet.id}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">Ver ficha</a>
+                    </div>
+                </div>
+            `;
+            petsContainer.appendChild(petCard);
+        });
+    } catch (error) {
+        petsContainer.innerHTML = `
+            <div class="col-span-full bg-red-100 p-4 rounded-lg text-center">
+                <p class="text-red-600">Error al cargar las mascotas.</p>
+            </div>
+        `;
+    }
+}
+
+// Cargar las citas del usuario
+async function loadUserAppointments() {
+    const user = currentUser.get();
+    if (!user) return;
+    
+    const appointmentsContainer = document.getElementById('user-appointments-container');
+    if (!appointmentsContainer) return;
+    
+    // Mostrar un loader mientras cargamos
+    appointmentsContainer.innerHTML = '<div class="animate-pulse bg-gray-200 rounded-lg h-24"></div>';
+    
+    try {
+        const appointments = await appointmentService.getAppointmentsByUserId(user.id);
+        
+        if (appointments.length === 0) {
+            appointmentsContainer.innerHTML = `
+                <div class="bg-gray-100 p-3 rounded-lg">
+                    <p class="text-gray-800 font-medium">No hay citas programadas</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // Crear las tarjetas de citas
+        appointmentsContainer.innerHTML = '';
+        appointments.forEach(appointment => {
+            const appointmentDate = new Date(appointment.date);
+            const formattedDate = appointmentDate.toLocaleDateString('es-ES');
+            const formattedTime = appointmentDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+            
+            const appointmentCard = document.createElement('div');
+            appointmentCard.className = 'bg-blue-50 p-3 rounded-lg';
+            appointmentCard.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-gray-800 font-medium">${appointment.service}</p>
+                        <p class="text-sm text-gray-600">${formattedDate} - ${formattedTime}</p>
+                        <p class="text-sm text-gray-600">${appointment.veterinarian}</p>
+                    </div>
+                    <button class="cancel-appointment-btn text-red-600 hover:text-red-800 text-sm" data-id="${appointment.id}">
+                        <i class="fas fa-times mr-1"></i> Cancelar
+                    </button>
+                </div>
+            `;
+            appointmentsContainer.appendChild(appointmentCard);
+            
+            // Agregar el evento para cancelar la cita
+            const cancelBtn = appointmentCard.querySelector('.cancel-appointment-btn');
+            cancelBtn?.addEventListener('click', async (e) => {
+                const appointmentId = (e.currentTarget as HTMLElement).dataset.id;
+                if (!appointmentId) return;
+                
+                if (confirm('¿Estás seguro de que deseas cancelar esta cita?')) {
+                    try {
+                        await appointmentService.cancelAppointment(appointmentId);
+                        // Recargar las citas
+                        loadUserAppointments();
+                    } catch (error) {
+                        alert('Error al cancelar la cita');
+                    }
+                }
+            });
+        });
+    } catch (error) {
+        appointmentsContainer.innerHTML = `
+            <div class="bg-red-100 p-3 rounded-lg">
+                <p class="text-red-600">Error al cargar las citas.</p>
+            </div>
+        `;
+    }
+}
+
+// Inicializar la página
+document.addEventListener('DOMContentLoaded', () => {
+    // Actualizar la información del perfil
+    updateProfileInfo();
+    
+    // Cargar las mascotas
+    loadUserPets();
+    
+    // Cargar las citas
+    loadUserAppointments();
+    
+    // Configurar evento de logout
+    const logoutBtn = document.getElementById('logout-btn');
+    logoutBtn?.addEventListener('click', async () => {
+        if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
+            await logout();
+            window.location.href = '/';
+        }
+    });
+    
+    // Configurar eventos para mostrar los formularios
+    const editProfileBtn = document.getElementById('edit-profile-btn');
+    editProfileBtn?.addEventListener('click', () => {
+        const editProfileForm = document.getElementById('edit-profile-form');
+        editProfileForm?.classList.remove('hidden');
+    });
+    
+    const addPetBtn = document.getElementById('add-pet-btn');
+    addPetBtn?.addEventListener('click', () => {
+        const addPetForm = document.getElementById('add-pet-form');
+        addPetForm?.classList.remove('hidden');
+    });
+    
+    // Observar cambios en el usuario
+    currentUser.subscribe(() => {
+        updateProfileInfo();
+    });
+});
+</script>

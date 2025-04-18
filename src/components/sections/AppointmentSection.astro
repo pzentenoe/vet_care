@@ -1,0 +1,210 @@
+<section id="appointment" class="py-16 bg-gray-50">
+    <div class="container mx-auto px-4">
+        <h2 class="text-3xl font-bold text-center mb-12 text-gray-800">Agenda una cita</h2>
+        
+        <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+            <div class="md:flex">
+                <div class="md:w-1/2 bg-blue-600 p-8 text-white">
+                    <h3 class="text-2xl font-bold mb-4">¿Por qué agendar con nosotros?</h3>
+                    <ul class="space-y-3">
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle mt-1 mr-2"></i>
+                            <span>Profesionales certificados y con experiencia</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle mt-1 mr-2"></i>
+                            <span>Equipamiento moderno y tecnología avanzada</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle mt-1 mr-2"></i>
+                            <span>Ambiente cálido y amigable para tus mascotas</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle mt-1 mr-2"></i>
+                            <span>Recordatorios automáticos de citas</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle mt-1 mr-2"></i>
+                            <span>Historial médico digital accesible</span>
+                        </li>
+                    </ul>
+                    <div class="mt-8">
+                        <h4 class="font-bold mb-2">Horario de atención</h4>
+                        <p>Lunes a Viernes: 8:00 - 20:00</p>
+                        <p>Sábados: 9:00 - 14:00</p>
+                        <p class="mt-4 font-bold">Teléfono de emergencias: 555-123-4567</p>
+                    </div>
+                </div>
+                
+                <div class="md:w-1/2 p-8">
+                    <h3 class="text-2xl font-bold mb-6 text-gray-800">Formulario de agendamiento</h3>
+                    <form id="appointment-form" class="space-y-4">
+                        <div id="appointment-form-message" class="hidden"></div>
+                        
+                        <div>
+                            <label for="name" class="block text-sm font-medium text-gray-700">Nombre completo</label>
+                            <input type="text" id="name" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label for="email-appointment" class="block text-sm font-medium text-gray-700">Correo electrónico</label>
+                            <input type="email" id="email-appointment" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label for="phone" class="block text-sm font-medium text-gray-700">Teléfono</label>
+                            <input type="tel" id="phone" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label for="pet-type" class="block text-sm font-medium text-gray-700">Tipo de mascota</label>
+                            <select id="pet-type" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                <option>Perro</option>
+                                <option>Gato</option>
+                                <option>Ave</option>
+                                <option>Roedor</option>
+                                <option>Reptil</option>
+                                <option>Otro</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="service" class="block text-sm font-medium text-gray-700">Servicio requerido</label>
+                            <select id="service" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                <option>Consulta general</option>
+                                <option>Vacunación</option>
+                                <option>Cirugía</option>
+                                <option>Odontología</option>
+                                <option>Laboratorio</option>
+                                <option>Emergencia</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="date" class="block text-sm font-medium text-gray-700">Fecha preferida</label>
+                            <input type="date" id="date" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                Solicitar cita
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+import { isAuthenticated, currentUser } from '@stores/authStore';
+import { AppointmentServiceImpl } from '../../services/api/AppointmentServiceImpl';
+
+const appointmentService = new AppointmentServiceImpl();
+
+document.addEventListener('DOMContentLoaded', () => {
+    const appointmentForm = document.getElementById('appointment-form') as HTMLFormElement;
+    const messageDiv = document.getElementById('appointment-form-message');
+    
+    // Prellenar el formulario si el usuario está autenticado
+    if (isAuthenticated.get()) {
+        const user = currentUser.get();
+        if (user) {
+            const nameInput = document.getElementById('name') as HTMLInputElement;
+            const emailInput = document.getElementById('email-appointment') as HTMLInputElement;
+            const phoneInput = document.getElementById('phone') as HTMLInputElement;
+            
+            if (nameInput) nameInput.value = user.name;
+            if (emailInput) emailInput.value = user.email;
+            if (phoneInput) phoneInput.value = user.phone;
+        }
+    }
+    
+    // Manejar envío del formulario
+    appointmentForm?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const nameInput = document.getElementById('name') as HTMLInputElement;
+        const emailInput = document.getElementById('email-appointment') as HTMLInputElement;
+        const phoneInput = document.getElementById('phone') as HTMLInputElement;
+        const petTypeInput = document.getElementById('pet-type') as HTMLSelectElement;
+        const serviceInput = document.getElementById('service') as HTMLSelectElement;
+        const dateInput = document.getElementById('date') as HTMLInputElement;
+        
+        const name = nameInput?.value || '';
+        const email = emailInput?.value || '';
+        const phone = phoneInput?.value || '';
+        const petType = petTypeInput?.value || '';
+        const service = serviceInput?.value || '';
+        const date = dateInput?.value || '';
+        
+        // Validación básica
+        if (!name || !email || !phone || !petType || !service || !date) {
+            showMessage('error', 'Por favor completa todos los campos');
+            return;
+        }
+        
+        // Validar formato de email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            showMessage('error', 'Por favor ingresa un correo electrónico válido');
+            return;
+        }
+        
+        // Validar fecha
+        const selectedDate = new Date(date);
+        const today = new Date();
+        if (selectedDate < today) {
+            showMessage('error', 'La fecha debe ser posterior a hoy');
+            return;
+        }
+        
+        try {
+            // Si el usuario está autenticado, creamos la cita asociada a su cuenta
+            if (isAuthenticated.get()) {
+                const user = currentUser.get();
+                if (user) {
+                    // En una implementación real, aquí se usaría la lista de mascotas del usuario
+                    // Simulamos una cita con la primera mascota del usuario (o una genérica si no tiene)
+                    await appointmentService.createAppointment({
+                        userId: user.id,
+                        petId: '1', // Mascota predeterminada (Max)
+                        date: `${date}T10:00:00`, // Hora predeterminada 10:00 AM
+                        service,
+                        veterinarian: 'Dra. Ana López', // Veterinario predeterminado
+                        status: 'scheduled'
+                    });
+                    
+                    showMessage('success', '¡Cita agendada correctamente! Puedes verla en tu perfil.');
+                    
+                    // Redireccionar al perfil después de 2 segundos
+                    setTimeout(() => {
+                        window.location.href = '/perfil';
+                    }, 2000);
+                    
+                    return;
+                }
+            }
+            
+            // Si el usuario no está autenticado, mostramos un mensaje diferente
+            showMessage('success', '¡Solicitud recibida! Te contactaremos pronto para confirmar tu cita.');
+            
+            // Limpiar el formulario
+            appointmentForm?.reset();
+            
+        } catch (error) {
+            showMessage('error', 'Error al agendar la cita. Por favor intenta nuevamente.');
+        }
+    });
+    
+    // Función para mostrar mensajes
+    function showMessage(type: 'success' | 'error', text: string) {
+        if (!messageDiv) return;
+        
+        messageDiv.className = type === 'success' 
+            ? 'bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative'
+            : 'bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative';
+        
+        messageDiv.innerHTML = text;
+        messageDiv.classList.remove('hidden');
+        
+        // Scroll al mensaje
+        messageDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+});
+</script>

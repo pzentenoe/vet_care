@@ -1,0 +1,11 @@
+---
+import MainLayout from '@layouts/MainLayout.astro';
+import ProfileSection from '@components/sections/ProfileSection.astro';
+import AuthGuard from '@components/common/AuthGuard.astro';
+---
+
+<MainLayout title="Mi Perfil">
+    <AuthGuard>
+        <ProfileSection />
+    </AuthGuard>
+</MainLayout>

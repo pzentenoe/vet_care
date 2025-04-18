@@ -1,0 +1,172 @@
+---
+import { currentUser } from '@stores/authStore';
+---
+
+<div id="edit-profile-form" class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-2xl font-bold text-gray-800">Editar perfil</h3>
+            <button id="close-profile-form" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div id="profile-form-error" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
+            <span id="profile-error-text">Error al actualizar el perfil</span>
+        </div>
+        
+        <form id="profile-form" class="space-y-4">
+            <div>
+                <label for="edit-name" class="block text-sm font-medium text-gray-700">Nombre completo</label>
+                <input type="text" id="edit-name" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div>
+                <label for="edit-email" class="block text-sm font-medium text-gray-700">Correo electrónico</label>
+                <input type="email" id="edit-email" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div>
+                <label for="edit-phone" class="block text-sm font-medium text-gray-700">Teléfono</label>
+                <input type="tel" id="edit-phone" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div>
+                <label for="edit-password" class="block text-sm font-medium text-gray-700">Nueva contraseña (dejar en blanco para no cambiar)</label>
+                <input type="password" id="edit-password" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div>
+                <label for="edit-confirm-password" class="block text-sm font-medium text-gray-700">Confirmar nueva contraseña</label>
+                <input type="password" id="edit-confirm-password" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div>
+                <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Guardar cambios
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+import { currentUser } from '@stores/authStore';
+import { UserService } from '../../services/api/UserServiceImpl';
+
+const userService = new UserService();
+
+document.addEventListener('DOMContentLoaded', () => {
+    const profileForm = document.getElementById('profile-form') as HTMLFormElement;
+    const closeBtn = document.getElementById('close-profile-form');
+    const errorMessage = document.getElementById('profile-form-error');
+    const errorText = document.getElementById('profile-error-text');
+    
+    // Cerrar el formulario
+    function closeProfileForm() {
+        const form = document.getElementById('edit-profile-form');
+        form?.classList.add('hidden');
+        
+        // Limpiar mensajes de error
+        errorMessage?.classList.add('hidden');
+        if (errorText) errorText.textContent = '';
+    }
+    
+    // Configurar cierre con el botón
+    closeBtn?.addEventListener('click', closeProfileForm);
+    
+    // Cerrar si se hace clic fuera del formulario
+    document.addEventListener('click', (e) => {
+        const editProfileForm = document.getElementById('edit-profile-form');
+        if (e.target === editProfileForm) {
+            closeProfileForm();
+        }
+    });
+    
+    // Llenar el formulario con los datos actuales
+    function populateProfileForm() {
+        const user = currentUser.get();
+        if (!user) return;
+        
+        const nameInput = document.getElementById('edit-name') as HTMLInputElement;
+        const emailInput = document.getElementById('edit-email') as HTMLInputElement;
+        const phoneInput = document.getElementById('edit-phone') as HTMLInputElement;
+        
+        if (nameInput) nameInput.value = user.name;
+        if (emailInput) emailInput.value = user.email;
+        if (phoneInput) phoneInput.value = user.phone;
+    }
+    
+    // Cada vez que se abre el formulario, actualizar los datos
+    const editProfileForm = document.getElementById('edit-profile-form');
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                const formElement = mutation.target as HTMLElement;
+                if (!formElement.classList.contains('hidden')) {
+                    populateProfileForm();
+                }
+            }
+        });
+    });
+    
+    if (editProfileForm) {
+        observer.observe(editProfileForm, { attributes: true });
+    }
+    
+    // Manejar envío del formulario
+    profileForm?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const nameInput = document.getElementById('edit-name') as HTMLInputElement;
+        const emailInput = document.getElementById('edit-email') as HTMLInputElement;
+        const phoneInput = document.getElementById('edit-phone') as HTMLInputElement;
+        const passwordInput = document.getElementById('edit-password') as HTMLInputElement;
+        const confirmPasswordInput = document.getElementById('edit-confirm-password') as HTMLInputElement;
+        
+        const name = nameInput?.value || '';
+        const email = emailInput?.value || '';
+        const phone = phoneInput?.value || '';
+        const password = passwordInput?.value || '';
+        const confirmPassword = confirmPasswordInput?.value || '';
+        
+        // Validación básica
+        if (!name || !email || !phone) {
+            errorMessage?.classList.remove('hidden');
+            if (errorText) errorText.textContent = 'Por favor completa todos los campos obligatorios';
+            return;
+        }
+        
+        if (password && password !== confirmPassword) {
+            errorMessage?.classList.remove('hidden');
+            if (errorText) errorText.textContent = 'Las contraseñas no coinciden';
+            return;
+        }
+        
+        // Obtener el usuario actual
+        const currentUserData = currentUser.get();
+        if (!currentUserData) {
+            errorMessage?.classList.remove('hidden');
+            if (errorText) errorText.textContent = 'Error: No se pudo obtener la información del usuario';
+            return;
+        }
+        
+        try {
+            // Actualizar el usuario
+            const updatedUser = await userService.updateUser(currentUserData.id, {
+                name,
+                email,
+                phone,
+                password: password || undefined // Solo enviar si hay una nueva contraseña
+            });
+            
+            // Actualizar el estado global
+            currentUser.set(updatedUser);
+            
+            // Cerrar el formulario
+            closeProfileForm();
+            
+            // Mostrar mensaje de éxito
+            alert('Perfil actualizado correctamente');
+        } catch (error) {
+            errorMessage?.classList.remove('hidden');
+            if (errorText) errorText.textContent = 'Error al actualizar el perfil';
+        }
+    });
+});
+</script>

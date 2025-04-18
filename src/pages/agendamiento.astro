@@ -1,0 +1,14 @@
+---
+import MainLayout from '@layouts/MainLayout.astro';
+import AppointmentSection from '@components/sections/AppointmentSection.astro';
+---
+
+<MainLayout title="Agendamiento">
+    <div class="py-16 bg-blue-600 text-white">
+        <div class="container mx-auto px-4 text-center">
+            <h1 class="text-4xl font-bold mb-6">Agenda una Cita</h1>
+            <p class="text-xl max-w-3xl mx-auto">Programa una consulta para tu mascota con nuestros veterinarios profesionales.</p>
+        </div>
+    </div>
+    <AppointmentSection />
+</MainLayout>

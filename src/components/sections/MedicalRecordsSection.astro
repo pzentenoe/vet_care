@@ -1,0 +1,375 @@
+---
+import { currentUser } from '@stores/authStore';
+---
+
+<section class="py-16 bg-white">
+    <div class="container mx-auto px-4">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-3xl font-bold text-gray-800">Fichas Clínicas</h2>
+            <button id="logout-btn" class="text-red-600 hover:text-red-800 font-medium">
+                <i class="fas fa-sign-out-alt mr-1"></i> Cerrar sesión
+            </button>
+        </div>
+        
+        <div class="bg-gray-50 rounded-xl shadow-md overflow-hidden">
+            <div class="p-6">
+                <!-- Los diferentes roles verán diferentes vistas -->
+                <div id="admin-view" class="hidden">
+                    <h3 class="text-xl font-bold mb-6 text-gray-800">Todas las fichas clínicas</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-100">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mascota</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dueño</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Última visita</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Veterinario</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-records-body" class="bg-white divide-y divide-gray-200">
+                                <!-- Datos cargados dinámicamente -->
+                                <tr>
+                                    <td colspan="5" class="px-6 py-4 text-center text-gray-500">
+                                        Cargando datos...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div id="vet-view" class="hidden">
+                    <h3 class="text-xl font-bold mb-6 text-gray-800">Mis pacientes</h3>
+                    <div id="vet-patients-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Datos cargados dinámicamente -->
+                        <div class="animate-pulse bg-gray-200 rounded-lg h-48"></div>
+                        <div class="animate-pulse bg-gray-200 rounded-lg h-48"></div>
+                        <div class="animate-pulse bg-gray-200 rounded-lg h-48"></div>
+                    </div>
+                </div>
+                
+                <div id="user-view" class="hidden">
+                    <h3 class="text-xl font-bold mb-6 text-gray-800">Fichas de mis mascotas</h3>
+                    <div id="user-records-container" class="space-y-6">
+                        <!-- Datos cargados dinámicamente -->
+                        <div class="animate-pulse bg-gray-200 rounded-lg h-64"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+import { currentUser, logout } from '@stores/authStore';
+import { PetServiceImpl } from '../../services/api/PetServiceImpl';
+import { MedicalRecordServiceImpl } from '../../services/api/MedicalRecordServiceImpl';
+
+const petService = new PetServiceImpl();
+const medicalRecordService = new MedicalRecordServiceImpl();
+
+// Mostrar la vista correspondiente al rol del usuario
+function showRoleView() {
+    const user = currentUser.get();
+    if (!user) return;
+    
+    const adminView = document.getElementById('admin-view');
+    const vetView = document.getElementById('vet-view');
+    const userView = document.getElementById('user-view');
+    
+    // Ocultar todas las vistas
+    adminView?.classList.add('hidden');
+    vetView?.classList.add('hidden');
+    userView?.classList.add('hidden');
+    
+    // Mostrar la vista correspondiente al rol
+    if (user.role === 'admin') {
+        adminView?.classList.remove('hidden');
+        loadAdminRecords();
+    } else if (user.role === 'vet') {
+        vetView?.classList.remove('hidden');
+        loadVetPatients();
+    } else {
+        userView?.classList.remove('hidden');
+        loadUserRecords();
+    }
+}
+
+// Cargar los registros para el admin
+async function loadAdminRecords() {
+    const recordsBody = document.getElementById('admin-records-body');
+    if (!recordsBody) return;
+    
+    try {
+        const allRecords = await medicalRecordService.getAllMedicalRecords();
+        
+        if (allRecords.length === 0) {
+            recordsBody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="px-6 py-4 text-center text-gray-500">
+                        No hay registros disponibles
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        // Generar las filas de la tabla
+        recordsBody.innerHTML = '';
+        
+        for (const record of allRecords) {
+            const pet = await petService.getPetById(record.petId);
+            if (!pet) continue;
+            
+            const icon = pet.type === 'Gato' ? 'fa-cat' : 'fa-dog';
+            const color = pet.type === 'Gato' ? 'orange' : 'blue';
+            
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 h-10 w-10">
+                            <i class="fas ${icon} text-2xl text-${color}-600"></i>
+                        </div>
+                        <div class="ml-4">
+                            <div class="text-sm font-medium text-gray-900">${pet.name}</div>
+                            <div class="text-sm text-gray-500">${pet.breed}, ${pet.age} años</div>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">${record.ownerName}</div>
+                    <div class="text-sm text-gray-500">${record.ownerEmail}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">${new Date(record.lastVisitDate).toLocaleDateString('es-ES')}</div>
+                    <div class="text-sm text-gray-500">${record.lastVisitReason}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">${record.veterinarian}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <a href="/fichas-clinicas/${record.id}" class="text-blue-600 hover:text-blue-900 mr-3">Ver</a>
+                    <a href="/fichas-clinicas/${record.id}/edit" class="text-green-600 hover:text-green-900">Editar</a>
+                </td>
+            `;
+            
+            recordsBody.appendChild(row);
+        }
+    } catch (error) {
+        recordsBody.innerHTML = `
+            <tr>
+                <td colspan="5" class="px-6 py-4 text-center text-red-500">
+                    Error al cargar los registros
+                </td>
+            </tr>
+        `;
+    }
+}
+
+// Cargar los pacientes para el veterinario
+async function loadVetPatients() {
+    const patientsContainer = document.getElementById('vet-patients-container');
+    if (!patientsContainer) return;
+    
+    try {
+        const user = currentUser.get();
+        if (!user) return;
+        
+        const patients = await medicalRecordService.getPatientsForVet(user.id);
+        
+        if (patients.length === 0) {
+            patientsContainer.innerHTML = `
+                <div class="col-span-full bg-gray-100 p-4 rounded-lg text-center">
+                    <p class="text-gray-600">No tienes pacientes asignados</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // Generar las tarjetas de pacientes
+        patientsContainer.innerHTML = '';
+        
+        for (const patient of patients) {
+            const pet = await petService.getPetById(patient.petId);
+            if (!pet) continue;
+            
+            const icon = pet.type === 'Gato' ? 'fa-cat' : 'fa-dog';
+            const color = pet.type === 'Gato' ? 'orange' : 'blue';
+            
+            const card = document.createElement('div');
+            card.className = 'bg-white rounded-lg shadow-md overflow-hidden border border-gray-200';
+            card.innerHTML = `
+                <div class="p-4 bg-${color}-50">
+                    <div class="flex items-center">
+                        <i class="fas ${icon} text-3xl text-${color}-600 mr-3"></i>
+                        <div>
+                            <h4 class="font-bold text-gray-800">${pet.name}</h4>
+                            <p class="text-sm text-gray-600">${pet.breed}, ${pet.age} años</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <div class="mb-3">
+                        <h5 class="text-sm font-medium text-gray-500">Dueño</h5>
+                        <p class="text-gray-800">${patient.ownerName}</p>
+                    </div>
+                    <div class="mb-3">
+                        <h5 class="text-sm font-medium text-gray-500">Última visita</h5>
+                        <p class="text-gray-800">${new Date(patient.lastVisitDate).toLocaleDateString('es-ES')} - ${patient.lastVisitReason}</p>
+                    </div>
+                    <div class="flex justify-end">
+                        <a href="/fichas-clinicas/${patient.id}" class="text-blue-600 hover:text-blue-800 font-medium">Ver ficha clínica</a>
+                    </div>
+                </div>
+            `;
+            
+            patientsContainer.appendChild(card);
+        }
+    } catch (error) {
+        patientsContainer.innerHTML = `
+            <div class="col-span-full bg-red-100 p-4 rounded-lg text-center">
+                <p class="text-red-600">Error al cargar los pacientes</p>
+            </div>
+        `;
+    }
+}
+
+// Cargar los registros para el usuario
+async function loadUserRecords() {
+    const recordsContainer = document.getElementById('user-records-container');
+    if (!recordsContainer) return;
+    
+    try {
+        const user = currentUser.get();
+        if (!user) return;
+        
+        const pets = await petService.getPetsByOwnerId(user.id);
+        
+        if (pets.length === 0) {
+            recordsContainer.innerHTML = `
+                <div class="bg-gray-100 p-4 rounded-lg text-center">
+                    <p class="text-gray-600">No tienes mascotas registradas aún</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // Generar las fichas de las mascotas
+        recordsContainer.innerHTML = '';
+        
+        for (const pet of pets) {
+            const records = await medicalRecordService.getMedicalRecordsByPetId(pet.id);
+            
+            const icon = pet.type === 'Gato' ? 'fa-cat' : 'fa-dog';
+            const color = pet.type === 'Gato' ? 'orange' : 'blue';
+            
+            const card = document.createElement('div');
+            card.className = 'bg-white rounded-lg shadow-md overflow-hidden border border-gray-200';
+            
+            // Header de la ficha
+            let cardHTML = `
+                <div class="p-4 bg-${color}-50 flex justify-between items-center">
+                    <div class="flex items-center">
+                        <i class="fas ${icon} text-3xl text-${color}-600 mr-3"></i>
+                        <div>
+                            <h4 class="font-bold text-gray-800">${pet.name}</h4>
+                            <p class="text-sm text-gray-600">${pet.breed}, ${pet.age} años</p>
+                        </div>
+                    </div>
+                    <span class="bg-${pet.status === 'active' ? 'blue' : 'gray'}-100 text-${pet.status === 'active' ? 'blue' : 'gray'}-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                        ${pet.status === 'active' ? 'Activo' : 'Inactivo'}
+                    </span>
+                </div>
+                <div class="p-4">
+            `;
+            
+            // Historial médico
+            cardHTML += `
+                <div class="mb-4">
+                    <h5 class="font-medium text-gray-800 mb-2">Historial médico</h5>
+                    <div class="space-y-3">
+            `;
+            
+            if (records.length === 0) {
+                cardHTML += `
+                    <p class="text-sm text-gray-600">No hay registros médicos disponibles</p>
+                `;
+            } else {
+                // Mostrar los últimos 5 registros médicos
+                const sortedRecords = records.sort((a, b) => 
+                    new Date(b.date).getTime() - new Date(a.date).getTime()
+                ).slice(0, 5);
+                
+                sortedRecords.forEach(record => {
+                    cardHTML += `
+                        <div class="pl-4 border-l-4 border-${color}-200">
+                            <p class="text-sm font-medium text-gray-800">${new Date(record.date).toLocaleDateString('es-ES')} - ${record.reasonForVisit}</p>
+                            <p class="text-sm text-gray-600">${record.notes}</p>
+                        </div>
+                    `;
+                });
+            }
+            
+            cardHTML += `
+                    </div>
+                </div>
+            `;
+            
+            // Información adicional
+            const petDetails = await medicalRecordService.getPetMedicalDetails(pet.id);
+            
+            cardHTML += `
+                <div class="mb-4">
+                    <h5 class="font-medium text-gray-800 mb-2">Alergias</h5>
+                    <p class="text-sm text-gray-600">${petDetails?.allergies || 'Ninguna alergia conocida.'}</p>
+                </div>
+                <div class="mb-4">
+                    <h5 class="font-medium text-gray-800 mb-2">Medicamentos actuales</h5>
+                    <p class="text-sm text-gray-600">${petDetails?.currentMedications || 'Ninguno.'}</p>
+                </div>
+                <div class="flex justify-end">
+                    <a href="/fichas-clinicas/${pet.id}" class="text-blue-600 hover:text-blue-800 font-medium">
+                        Ver historial completo
+                    </a>
+                </div>
+            `;
+            
+            // Cerrar los divs
+            cardHTML += `
+                </div>
+            `;
+            
+            card.innerHTML = cardHTML;
+            recordsContainer.appendChild(card);
+        }
+    } catch (error) {
+        recordsContainer.innerHTML = `
+            <div class="bg-red-100 p-4 rounded-lg text-center">
+                <p class="text-red-600">Error al cargar las fichas clínicas</p>
+            </div>
+        `;
+    }
+}
+
+// Inicializar la página
+document.addEventListener('DOMContentLoaded', () => {
+    // Mostrar la vista correspondiente al rol del usuario
+    showRoleView();
+    
+    // Configurar evento de logout
+    const logoutBtn = document.getElementById('logout-btn');
+    logoutBtn?.addEventListener('click', async () => {
+        if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
+            await logout();
+            window.location.href = '/';
+        }
+    });
+    
+    // Observar cambios en el usuario
+    currentUser.subscribe(() => {
+        showRoleView();
+    });
+});
+</script>

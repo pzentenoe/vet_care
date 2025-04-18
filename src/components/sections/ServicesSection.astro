@@ -1,0 +1,62 @@
+---
+// Definimos los servicios como un array para facilitar su mantenimiento
+const services = [
+    {
+        icon: 'fa-stethoscope',
+        title: 'Consulta General',
+        description: 'Exámenes físicos completos, diagnóstico y tratamiento para mantener a tu mascota saludable.',
+        bgColor: 'blue'
+    },
+    {
+        icon: 'fa-syringe',
+        title: 'Vacunación',
+        description: 'Programas de vacunación personalizados para proteger a tu mascota de enfermedades comunes.',
+        bgColor: 'green'
+    },
+    {
+        icon: 'fa-bone',
+        title: 'Cirugía',
+        description: 'Procedimientos quirúrgicos realizados con equipamiento moderno y técnicas avanzadas.',
+        bgColor: 'purple'
+    },
+    {
+        icon: 'fa-tooth',
+        title: 'Odontología',
+        description: 'Cuidado dental profesional incluyendo limpieza, extracciones y tratamiento de enfermedades periodontales.',
+        bgColor: 'yellow'
+    },
+    {
+        icon: 'fa-dna',
+        title: 'Laboratorio',
+        description: 'Análisis clínicos, pruebas de diagnóstico y estudios especializados para un diagnóstico preciso.',
+        bgColor: 'red'
+    },
+    {
+        icon: 'fa-home',
+        title: 'Hospitalización',
+        description: 'Áreas especializadas para el cuidado y monitoreo de mascotas que requieren atención continua.',
+        bgColor: 'pink'
+    }
+];
+---
+
+<section id="services" class="py-16 bg-white">
+    <div class="container mx-auto px-4">
+        <h2 class="text-3xl font-bold text-center mb-12 text-gray-800">Nuestros Servicios</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {services.map(service => (
+                <div class="bg-gray-50 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition duration-300">
+                    <div class={`h-48 bg-${service.bgColor}-100 flex items-center justify-center`}>
+                        <i class={`fas ${service.icon} text-6xl text-${service.bgColor}-600`}></i>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold mb-3 text-gray-800">{service.title}</h3>
+                        <p class="text-gray-600 mb-4">{service.description}</p>
+                        <a href={`/servicios/${service.title.toLowerCase().replace(/\s+/g, '-')}`} class="text-blue-600 font-medium hover:text-blue-800">Más información →</a>
+                    </div>
+                </div>
+            ))}
+        </div>
+    </div>
+</section>

@@ -1,0 +1,37 @@
+@import "tailwindcss";
+@import '@fortawesome/fontawesome-free/css/all.min.css';
+
+/* Estilos personalizados */
+.hero-image {
+    background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('/images/hero-bg.jpg');
+    background-size: cover;
+    background-position: center;
+}
+
+.pet-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.login-modal {
+    transition: all 0.3s ease;
+}
+
+.sidebar {
+    transition: transform 0.3s ease;
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        z-index: 50;
+    }
+    
+    .sidebar.open {
+        transform: translateX(0);
+    }
+}
